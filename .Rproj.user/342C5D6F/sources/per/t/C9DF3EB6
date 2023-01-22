@@ -1,0 +1,33 @@
+{
+    "id": "C9DF3EB6",
+    "path": "~/Desktop/Assignment_1/Assignment_1.qmd",
+    "project_path": "Assignment_1.qmd",
+    "type": "quarto_markdown",
+    "hash": "1628723310",
+    "contents": "",
+    "dirty": false,
+    "created": 1674285746688.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "rmdVisualMode": "false",
+        "rmdVisualWrapConfigured": "true",
+        "source_window_id": "",
+        "Source": "Source",
+        "docOutlineVisible": "1",
+        "cursorPosition": "346,6",
+        "scrollLine": "344",
+        "rmdVisualModeLocation": "2:2700",
+        "rmdVisualCollapsedChunks": "",
+        "ignored_words": "outliers\n",
+        "quartoPreviewFormat": "html"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1674296844,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1674296844909,
+    "read_only": false,
+    "read_only_alternatives": []
+}

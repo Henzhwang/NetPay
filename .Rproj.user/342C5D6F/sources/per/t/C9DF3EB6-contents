@@ -1,0 +1,405 @@
+---
+title: "Assignment 1"
+format: 
+  html:
+    toc: true
+    html-math-method: mathjax
+    css: styles.css
+  pdf:
+    toc: true
+    number-sections: false
+    colorlinks: true
+    include-in-header: 
+      - text: |
+          \usepackage{amsmath}
+editor: visual
+---
+
+## Libaries
+
+```{r, message=FALSE}
+library(class)
+library(dplyr)
+library(ggplot2)
+library(formattable)
+```
+
+## Question 2
+
+We want to replicate a Figure 2.3 in chapter 2 of the book ESL. In order t replicate the figure, I have used the exact data which produced Figure 2.3, as I have installed the archived packages `ElemStatLearn` package from CRAN website.
+
+We want to use the exact data that used to produced Figure 2.3,
+
+```{r}
+# loading data
+load("ESL.mixture.rda")
+mixture <- ESL.mixture
+```
+
+We now want to replicate Figure 2.3 by executating the following code.
+
+```{r, warning=FALSE}
+training <- cbind(mixture$x, mixture$y) %>% as_data_frame()
+colnames(training) <- c("x1", "x2", "label")
+training <- training %>% 
+  mutate(label = factor(label, levels = c(0, 1), labels = c("Blue", "Orange")))
+
+# obtain lattice points by the range of tranning data(test data)
+range_x <- round(range(training$x1), digits = 2)
+range_y <- round(range(training$x2), digits = 2)
+  
+coord_x <- seq(from = range_x[1], to = range_x[2], length.out = 69)
+coord_y <- seq(from = range_y[1], to = range_y[2], length.out = 99)
+
+lattice_points <- expand.grid(x1 = coord_x, x2 = coord_y)
+
+# Vector of inputs (matrix X)
+X = as.matrix(cbind(rep(1, nrow(training)), training[, -3]))
+# output from training
+y = mixture$y
+
+# Estimate beta_hat
+beta_hat <- solve(t(X) %*% X) %*% t(X) %*% y
+
+# Prediction
+## vectors of inputs
+X_test <- as.matrix(cbind(rep(1, nrow(lattice_points)), lattice_points))
+
+# estimate y_hat
+y_hat <- X_test %*% beta_hat
+
+# label prediction
+pred <- cbind(lattice_points, label = ifelse(y_hat > 0.5, "Orange", "Blue"))
+```
+
+```{r fig.width=8, fig.height=7}
+ggplot() +
+  # geom_point(data = linreg.plotdata,
+  #            mapping = aes(x = x1, y = x2, color = linreg.pred),
+  #            size = 0.05) +
+  geom_point(data = training,
+             mapping = aes(x = x1, y = x2, color = label),
+             shape = 1, size = 2.3, stroke = 0.9) +
+  geom_point(data = pred,
+             mapping = aes(x = x1, y = x2, color = label),
+             size = 0.05) +
+  geom_abline(slope = -beta_hat[2] / beta_hat[3],
+              intercept = (0.5 - beta_hat[1]) / beta_hat[3],
+              color = "black")+
+  scale_color_manual(values = c("blue", "orange")) +
+  ggtitle("Replication of Figure 2.1 in ESL Chapter2")+
+  theme_classic()
+```
+
+## ADA Question 1.2
+
+We consider the mean absolute error $MAE(m) = \mathbf{E}[|Y-m|]$, and we are interested in the value $\tilde{\mu}$ that minimizes the MAE. Then, by definition of expectation, we have
+$$
+\begin{split}
+\mathbf{E}[|Y-m|] 
+&= \int_{-\infty}^{\infty} |Y-m| f(Y) dY \\
+&= \int_{-\infty}^{m} |Y-m| f(Y) dY + \int_{m}^{\infty} |Y-m| f(Y) dY \\
+&= \int_{-\infty}^{m} (m-Y) f(Y) dY + \int_{m}^{\infty} (Y-m) f(Y) dY
+\end{split}
+$$
+
+We notice that when $Y \leq m$ then $|Y-m| = (m-Y)$ and when $Y \geq m$ then $|Y-m| = (Y-m)$. Next, we want to find the derivatives of the MAE to find the minimum,
+
+$$
+\begin{split}
+\frac{d}{dm}(\mathbf{E}[|Y-m|]) 
+&= \frac{d}{dm} \biggl (  \int_{-\infty}^{m} (m-Y) f(Y) dY \biggr )  + \frac{d}{dm} \biggl (\int_{m}^{\infty} (Y-m) f(Y) dY \biggr )\\
+\end{split}
+$$
+
+By applying the Leibniz integral rule, we simply get the first term
+$$
+\begin{split}
+&\qquad \frac{d}{dm} \int_{-\infty}^{m} (m-Y) f(Y) dY \\
+&= [(m-Y)f(Y)]_{Y=m} \cdot \frac{dm}{dm} - [(Y-m)f(Y)]_{Y=-\infty} \cdot \frac{d(-\infty)}{dm} + 
+\int_{-\infty}^{m}\frac{\partial}{\partial{m}} \bigl[ (m-Y)f(Y) \bigr]dY \\
+&= 0 - 0 + \int_{-\infty}^{m} 1\cdot f(Y)dY \\
+&= \int_{-\infty}^{m}  f(Y) dY 
+\end{split}
+$$
+
+Similarly, we obtain for the second term,
+$$
+\frac{d}{dm} \int_{m}^{\infty} (Y-m) f(Y) dY = -\int_{m}^{\infty}  f(Y) dY
+$$
+
+Thus, we have the derivative of MAE and we want to set to 0 such that,
+$$
+\begin{split}
+\frac{d}{dm}(\mathbf{E}[|Y-m|]) &= 0\\ 
+\int_{-\infty}^{m}  f(Y) dY - \int_{m}^{\infty}  f(Y) dY &= 0 \\
+\int_{-\infty}^{m}  f(Y) dY& = \int_{m}^{\infty}  f(Y) dY \\
+P(Y \leq m) &= P(Y \geq m)
+\end{split}
+$$
+
+Since $P(Y \leq m) + P(Y \geq m) = 1$, then we easily obtain $P(Y \leq m) = P(Y \geq m) = \frac{1}{2}$. 
+
+Therefore, by the definition of median, MAE is minimizes by taking $\tilde{\mu}$ as the median.
+
+
+The two error measures metrics, MAE measures the average of the absolute value between the true values and the predicted values while MSE measures the average square of the distance. Both metrics indicate the prediction model is more accurate when the error values are close to zero. However, [Vinicius](https://towardsdatascience.com/comparing-robustness-of-mae-mse-and-rmse-6d69da870828) has tested and concluded that MAE is more desirable for noisy applications as it is less affected by the outliers and more robust to MSE. This conclusion is also illustrated by the finding of the mean value minimizes MSE which leads to MSE being sensitive to outliers and tends to give higher importance to larger errors. On the other hand, MSE has nice derivatives which make it more computationally convenient and more desirable for continuous optimization problems. To summarize, MAE is preferred for problems that require minimizing the effect of the noise and outliers, and the sensitivity of MSE can accommodate the need in sensing the anomalies and is more convenient to solve continuous optimization problems. 
+
+
+
+
+## ADA Question 1.7
+
+By definition from ADA, linear smoothers are where the predictions are linear in the response $y_i$. That is, the prediction vector $\hat{\mu}(x)$ of predicted values at the observed predicted values is a linear function of the data vector $y$, which can be express as the following,
+
+$$
+\hat{\mu}(x) = x \hat{\beta} = (X(X^T X)^{-1} X^T)y = wy
+$$
+
+such that
+
+$$
+\hat{\mu}(x_i) = \sum_i \hat{w}(x_i, x_j) y_i
+$$
+
+where $\hat{\mu}(x)$ is the predicted mean values vector, $y$ is the data vector, and $w$ is the influence matrix.
+
+By definition from ADA, linear smoothers are where the predictions are linear in the response $y_i$. That is, the predicted mean values vector $\hat{\mu}(x)$ is a linear function of the data vector $y$ at the observed predictor values $x$. It can be expressed as,
+
+$$
+\hat{\mu}(x_i) = \sum_i \hat{w}(x_i, x_j) y_i = \sum_i \hat{w}_{ij}y_i.
+$$
+
+Or in the general matrix form,
+
+$$
+\hat{\mu} = x \hat{\beta} = (X(X^T X)^{-1} X^T)y = wy
+$$
+
+where $w$ or $\hat{w}$ is the influence matrix indicating the contribution of each response value $y_i$ toward a smoother fitted value $\mu(x_i)$.
+
+Consider the sample mean formula $\mu = \frac{\sum_i y_i}{n}$, where $n$ is the number of observations, each observed response value $y_i$ are considered and contributed equally to the sample mean value $\mu$ regarding their distance between. Similarly, as using global mean as a linear smoother, we obtain the influence matrix $\hat{w}_{ij} = \frac{1}{n}$ for all $x$ such that the smoother's fitted value vector $\hat{\mu}(x) = \frac{1}{n} \sum_i y_i$. In the matrix form,
+
+$$
+w = \frac{1}{n}\cdot I_n = \begin{bmatrix} 
+\frac{1}{n} & \frac{1}{n} & \dots  & \frac{1}{n}\\
+\frac{1}{n} & \frac{1}{n} & \dots  & \frac{1}{n}\\
+\vdots      & \vdots      & \ddots & \vdots        \\
+\frac{1}{n} & \frac{1}{n} & \dots  & \frac{1}{n}\end{bmatrix}
+$$
+
+We now want to find the degree of freedom of the influence matrix $w$, where by definition in equation 1.70 in ADA, we know that $df(w) \equiv tr(w)$. Then, we obtain
+
+$$
+tr(\hat{w}) = \sum_1^n \frac{1}{n} = n\cdot \frac{1}{n} = 1.
+$$
+
+Hence, the influence matrix when global mean as a linear smoother has a degree of freedom $1$.
+
+## ADA Question 1.8
+
+In this question, we want to consider k-nearest-nerighbors regression as a linear smoother. By the definition of the KNN regression, the predicted values are based on the average of the fixed number $k$ closest point to the observed predictor. In other words, KNN regression is sensitive to the distance between observed predictors $x_i$ and $x$, where each of $k$ nearest neighbours contributes equally and is the only influence to the predicted values of $x$.
+
+Thus, by the previous definition and ADA, the indication function for the influence matrix $\hat{w} (x_i, x)$ can be expressed as
+
+```{=latex}
+\begin{equation}
+\hat{w}(x_i, x) =
+\begin{cases}
+\frac{1}{k} & x_i \text{ one of the nearest $k$ neighbor of $x$}\\
+0 & \text{otherwise}
+\end{cases}
+\end{equation}
+```
+Notice that the structure of the influence matrix $w$ can vary, as its sensibility to the distance between the observed predictors such that the neighborhood points can be overlaid. However, consider the observed predictor vector $x = \{x_1, ..., x_i, ..., x_n\}$, we notice that $\hat{w}_{ii} = \hat{w}(x_i, x_i)$ will always be $\frac{1}{k}$ for all $i$. The distance between $x_i$ and $x_i$ is always $0$ as they are the same points, which is always one of the nearest neighbors for $x_i$ regarding the choices of $k$ as $k \geq 1$. Thus, the diagonal elements of $\hat{w}$ are always $\frac{1}{k}$. Then, we obtain the influence matrix,
+
+$$
+w = 
+\begin{bmatrix}
+\hat{w}_{11}  & \hat{w}_{21}  & \dots  & \hat{w}_{n1} \\
+\hat{w}_{12}  & \hat{w}_{22}  & \dots  & \hat{w}_{n2} \\
+\vdots        & \vdots        & \ddots & \vdots       \\
+\hat{w}_{1n}  & \dots         & \dots  & \hat{w}_{nn} \\
+\end{bmatrix}
+= 
+\begin{bmatrix}
+\frac{1}{k}   & \hat{w}_{21}  & \dots  & \hat{w}_{n1} \\
+\hat{w}_{12}  & \frac{1}{k}   & \dots  & \hat{w}_{n2} \\
+\vdots        & \vdots        & \ddots & \vdots       \\
+\hat{w}_{1n}  & \dots         & \dots  & \frac{1}{k} \\
+\end{bmatrix}
+$$
+
+Then, we can now compute the degree of freedom for $w$ by the Equation 1.70 in ADA, for some fixed value $k \geq 1$ and $n$ number of observations,
+
+$$
+df(w) = tr(w) = \frac{1}{k} + \frac{1}{k} + ... + \frac{1}{k} = n \cdot \frac{1}{k} = \frac{n}{k}.
+$$
+
+In the case of $k = n$, $df(w) = 1$.
+
+Hence, the degree of freedom of the influence matrix $x$ for KNN regression smoother is $\frac{n}{k}$ for $k \geq 1$ or $1$ when $k = n$.
+
+## ESL Question 2.8
+
+We want to compare the classification performance of linear regression and k-nearest-neighbors regression on the `zipcode` data.
+
+```{r}
+train <- read.table("zip_train.csv", header = FALSE)
+test <- read.table("zip_test.csv", header = FALSE)
+```
+
+By reading the info of the `zipcode` dataset, we know that the each line consists of the digit id from 1-9 followed by 256 grayscale values. That is, the digit id is the response variable where the grayscale values are the predictor variables.
+
+We first verify we have the same number of observations from the info page.
+
+```{r}
+# cbind(dplyr::count(train, V1), dplyr::count(test, V1)) %>% 
+#   `names<-`(c("Train", "Count", "Test", "Count"))
+```
+
+Then we only want to consider the digit id of 2 and 3, thus, we would like to subset them from the training set.
+
+```{r}
+# subset digit id 2 and 3
+train_sub <- subset(train, V1 %in% c(2,3))
+test_sub <- subset(test, V1 %in% c(2,3))
+
+# isolate predictor and response variable
+train_sub_pre <- train_sub[, -1]
+test_sub_pre <- test_sub[, -1]
+
+train_sub_res <- train_sub[, 1]
+test_sub_res <- test_sub[, 1]
+```
+
+Next, we write function to classify using linear regression and knn, and compute the train error and test error.
+
+```{r}
+# Preform linear regression
+lin_reg_pred <- function(train, test, true_value) {
+  # covert 2 and 3 to 0 and 1 for computation
+  train_mutate <- mutate(train, V1 = ifelse(V1 == 2, 0, 1))
+  
+  # fit linear regression model
+  model <- lm(V1 ~ .,
+              data = train_mutate)
+  
+  # prediction of test data
+  prob_test <- predict(object = model,
+                  newdata = test,
+                  type = "response")
+  # label prediction
+  pred_test <- ifelse(prob_test > 0.5, 3, 2)
+  
+  # prediction of the train data
+  prob_train <- predict(object = model,
+                        newdata = train[, -1],
+                        type = "response")
+  # label prediction
+  pred_train <- ifelse(prob_train > 0.5, 3, 2)
+  
+  # error
+  test_error <- mean(true_value != pred_test)
+  train_error <- mean(train[, 1] != pred_train)
+  
+  return(as_tibble(list(Method = "Linear Regression",
+                 Train_error = train_error,
+                 Train_error_percent = percent(train_error),
+                 Test_error = test_error,
+                 Test_error_percent = percent(test_error))))
+}
+```
+
+```{r}
+# list of k choices
+k_list <- c(1, 3, 5, 7, 15)
+
+# knn train errors
+knn_test_error <- lapply(k_list, function(k){
+  
+  fit_test <- class::knn(train = train_sub_pre,
+                         test = test_sub_pre,
+                         cl = train_sub_res,
+                         k = k,
+                         prob = FALSE)
+  
+  test_error <- mean(test_sub_res != fit_test)
+  
+  return(test_error)
+}) %>% unlist()
+
+# knn test errors
+knn_train_error <- lapply(k_list, function(k){
+  
+  fit_train <- class::knn(train = train_sub_pre,
+                          test = train_sub_pre,
+                          cl = train_sub_res,
+                          k = k,
+                          prob = FALSE)
+  
+  train_error <- mean(train_sub_res != fit_train)
+  
+  return(train_error)
+}) %>% unlist()
+```
+
+```{r}
+# linear regression prediction
+lin_reg_err <- lin_reg_pred(train = train_sub,
+                            test = test_sub_pre,
+                            true_value = test_sub_res)
+
+# knn prediction with errors
+knn_err <- tibble(Method = paste("KNN with k = ", k_list),
+       Train_error = knn_train_error,
+       Train_error_percent = percent(knn_train_error, digits = 2),
+       Test_error = knn_test_error,
+       Test_error_percent = percent(knn_test_error, digits = 2))
+
+# output table
+knitr::kable(rbind(lin_reg_err, knn_err), align = c("l", "c", "c", "c", "c"))
+```
+
+### Alternative linear regression algorithm
+
+An alternative solution for linear regression method:
+
+```{r}
+lin_reg_class <- function(train_set, train_class, test_set, test_class){
+  
+  # Vector of trainning input
+  X = as.matrix(cbind(rep(1, nrow(train_set)), train_set))
+  # class of trainning
+  y = ifelse(train_class == 2, yes = 0, no = 1)
+  
+  # estimate betas
+  beta_hat <- solve(t(X) %*% X) %*% t(X) %*% y
+  
+  # vector of test inputs
+  X_test <- as.matrix(cbind(rep(1, nrow(test_set)), test_set))
+  
+  # estimate y_hat
+  y_hat <- X_test %*% beta_hat
+  
+  # label prediction
+  pred <- ifelse(y_hat > 0.5, 3, 2)
+  
+  # error
+  return(mean(test_class != pred))
+}
+
+## training error
+lin_reg_train_err <- lin_reg_class(train_set = train_sub_pre, train_class = train_sub_res,
+                                   test_set = train_sub_pre, test_class = train_sub_res)
+## test error
+lin_reg_test_err <-lin_reg_class(train_set = train_sub_pre, train_class = train_sub_res,
+                                 test_set = test_sub_pre, test_class = test_sub_res)
+
+# linear regression error
+lin_reg_err <- as_tibble(list(Method = "Linear Regression",
+                 Train_error = lin_reg_train_err,
+                 Train_error_percent = percent(lin_reg_train_err),
+                 Test_error = lin_reg_test_err,
+                 Test_error_percent = percent(lin_reg_test_err)))
+```

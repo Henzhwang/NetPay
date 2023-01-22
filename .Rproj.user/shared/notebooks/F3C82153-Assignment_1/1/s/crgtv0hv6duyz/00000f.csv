@@ -1,0 +1,3 @@
+"0","# loading data"
+"0","load(""ESL.mixture.rda"")"
+"0","mixture <- ESL.mixture"
